@@ -1,0 +1,63 @@
+*.py[cod]
+__pycache__
+
+database.sqlite
+
+# Node Modules
+node_modules
+yarn.lock
+*/static/.yarnrc.yml
+*/static/.yarn
+*/static/stylesheets/*.css
+*/static/stylesheets/*.css.map
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+dist
+build/air
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+
+# Translations
+*.mo
+
+# PyCharm
+.idea
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# IDE VSCode
+.history
+.vscode
+
+# Config
+bastion.yml
+bastion_schedule.yml
+cloudflare.yml
+cloudns.yml
+projenv.yml
+projenv_init.yml
+
+tmp
