@@ -1,4 +1,4 @@
-name: Run nviman tests
+name: Run nvimm tests
 
 on: [push, pull_request]
 
