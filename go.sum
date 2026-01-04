@@ -6,6 +6,8 @@ github.com/candango/gopeasant v0.2.9 h1:+xYc5Z/GSaaUNw9HNtFdLBGDDqfZ6BOPr/ed9Unw
 github.com/candango/gopeasant v0.2.9/go.mod h1:cCJyzb9Dq60W366A6P9O2gPoYe+8gT8gEf/pevj1ALg=
 github.com/candango/httpok v0.1.0 h1:tNI/BZUZ70A8IyUdqlvDC6nw6ZfMtafuuuMvHjrSWr4=
 github.com/candango/httpok v0.1.0/go.mod h1:B8HXOvR8HLQaVCIzDkCdXcH7Iycp/ZIBZvhaUiyai6I=
+github.com/candango/iook v0.0.2 h1:rj5hikplbeXNwVd/fxN3Eup9lCNcp5a4OGHaOWlorKA=
+github.com/candango/iook v0.0.2/go.mod h1:ONj89fOgo8VMOqUfPcsy+7u6mz/XAjIlRgisPNpA/C8=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
