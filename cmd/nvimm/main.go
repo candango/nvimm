@@ -4,16 +4,17 @@ import (
 	"os"
 
 	"github.com/candango/nvimm/internal/cli"
+	"github.com/candango/nvimm/internal/config"
 	"github.com/jessevdk/go-flags"
 )
 
 func main() {
-	var opts cli.AppOptions
+	var opts config.AppOptions
 
 	parser := flags.NewParser(&opts, flags.Default)
 	parser.Usage = "[Options] command"
 
-	parser.CommandHandler = cli.WithAppOptions(&opts, cli.WithPathsResolved)
+	parser.CommandHandler = config.WithAppOptions(&opts, config.WithPathsResolved)
 
 	parser.AddCommand(
 		"current",

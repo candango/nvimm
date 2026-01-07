@@ -16,6 +16,7 @@ import (
 	"github.com/candango/iook/dir"
 	"github.com/candango/iook/pathx"
 	"github.com/candango/nvimm/internal/cache"
+	"github.com/candango/nvimm/internal/config"
 	"github.com/candango/nvimm/internal/filehash"
 	"github.com/candango/nvimm/internal/protocol"
 	"github.com/candango/nvimm/internal/release"
@@ -29,8 +30,8 @@ func (cmd *CurrentCommand) Execute(args []string) error {
 }
 
 type InstallCommand struct {
-	Release    string `positional-arg-name:"release" description:"Release version to install"`
-	appOptions *AppOptions
+	Release string `positional-arg-name:"release" description:"Release version to install"`
+	appOpts *config.AppOptions
 }
 
 func (cmd *InstallCommand) Usage() string {
@@ -42,16 +43,16 @@ func (cmd *InstallCommand) Execute(args []string) error {
 		return fmt.Errorf("positional argument release was not informed\n")
 	}
 	cmd.Release = args[0]
-	if !pathx.Exists(cmd.appOptions.CachePath) {
+	if !pathx.Exists(cmd.appOpts.CachePath) {
 		return fmt.Errorf("cache path does not exist: %s",
-			cmd.appOptions.CachePath)
+			cmd.appOpts.CachePath)
 	}
-	if !pathx.Exists(cmd.appOptions.Path) {
+	if !pathx.Exists(cmd.appOpts.Path) {
 		return fmt.Errorf("nvim path does not exist: %s",
-			cmd.appOptions.Path)
+			cmd.appOpts.Path)
 	}
 	// nvimPath := cmd.appOptions.Path
-	cachePath := cmd.appOptions.CachePath
+	cachePath := cmd.appOpts.CachePath
 
 	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
 	gt, err := protocol.NewGithubTransport()
@@ -80,7 +81,8 @@ func (cmd *InstallCommand) Execute(args []string) error {
 		return fmt.Errorf("failed to get cached releases: %w", err)
 	}
 	releases := release.Releases{}
-	err = releases.Process(data)
+
+	err = releases.Process(data, cmd.appOpts)
 	if err != nil {
 		return fmt.Errorf("failed to process releases: %w", err)
 	}
@@ -96,10 +98,11 @@ func (cmd *InstallCommand) Execute(args []string) error {
 	assetFound := false
 
 	for _, asset := range info.Assets {
-		if asset.Name == getTarballName(goos, goarch) {
+		if asset.Name == getTarballName(info, goos, goarch) {
 			assetFound = true
 			assetUrl = fmt.Sprintf("%s/%s", strings.ReplaceAll(info.HtmlUrl, "tag", "download"), asset.Name)
 			assetDigest = asset.Digest
+			break
 		}
 	}
 
@@ -139,11 +142,11 @@ func (cmd *InstallCommand) Execute(args []string) error {
 
 	releasePath := strings.ReplaceAll(
 		filepath.Join(cachePath, downloadedRelease), ".tar.gz", "")
-	dir.CopyAll(releasePath, filepath.Join(cmd.appOptions.Path, cmd.Release))
+	dir.CopyAll(releasePath, filepath.Join(cmd.appOpts.Path, cmd.Release))
 	return nil
 }
 
-func getTarballName(goos string, goarch string) string {
+func getTarballName(info *release.Info, goos string, goarch string) string {
 
 	if goos == "darwin" && goarch == "amd64" {
 		return "nvim-macos-x86_64.tar.gz"
@@ -154,6 +157,9 @@ func getTarballName(goos string, goarch string) string {
 	}
 
 	if goos == "linux" && goarch == "amd64" {
+		if info.VersionLess("0.10.4") {
+			return "nvim-linux64.tar.gz"
+		}
 		return "nvim-linux-x86_64.tar.gz"
 	}
 
@@ -187,20 +193,20 @@ func downloadRelease(url string, destDir string) (string, error) {
 	return filename, nil
 }
 
-func (cmd *InstallCommand) SetAppOptions(opts *AppOptions) {
-	cmd.appOptions = opts
+func (cmd *InstallCommand) SetAppOptions(opts *config.AppOptions) {
+	cmd.appOpts = opts
 }
 
 type ListCommand struct {
-	appOptions *AppOptions
+	appOpts *config.AppOptions
 }
 
 func (cmd *ListCommand) Execute(args []string) error {
-	if !pathx.Exists(cmd.appOptions.CachePath) {
+	if !pathx.Exists(cmd.appOpts.CachePath) {
 		return fmt.Errorf("cache path does not exist: %s",
-			cmd.appOptions.CachePath)
+			cmd.appOpts.CachePath)
 	}
-	cachePath := cmd.appOptions.CachePath
+	cachePath := cmd.appOpts.CachePath
 	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
 	gt, err := protocol.NewGithubTransport()
 	if err != nil {
@@ -229,12 +235,12 @@ func (cmd *ListCommand) Execute(args []string) error {
 	}
 
 	releases := release.Releases{}
-	err = releases.Process(data)
+	err = releases.Process(data, cmd.appOpts)
 	if err != nil {
 		return fmt.Errorf("failed to process releases: %w", err)
 	}
 
-	installed := releases.Installed(cmd.appOptions.Path)
+	installed := releases.Installed(cmd.appOpts.Path)
 
 	fmt.Println("Installed versions")
 	if len(installed) == 0 {
@@ -250,20 +256,19 @@ func (cmd *ListCommand) Execute(args []string) error {
 	}
 
 	available := releases.Available(installed)
-	fmt.Println("\nAvailable versions")
-	if len(available) == 0 {
-		fmt.Println("  no releases installed")
+	if len(available) > 0 {
+		fmt.Println("\nAvailable versions")
 	}
 	for _, info := range available {
 		if info.Stable == true {
-			fmt.Printf("%s (stable)\n", info.CleanTagName())
+			fmt.Printf("  %s (stable)\n", info.CleanTagName())
 			continue
 		}
-		fmt.Printf("%s\n", info.CleanTagName())
+		fmt.Printf("  %s\n", info.CleanTagName())
 	}
 	return nil
 }
 
-func (cmd *ListCommand) SetAppOptions(opts *AppOptions) {
-	cmd.appOptions = opts
+func (cmd *ListCommand) SetAppOptions(opts *config.AppOptions) {
+	cmd.appOpts = opts
 }

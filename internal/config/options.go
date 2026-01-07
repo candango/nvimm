@@ -1,4 +1,4 @@
-package cli
+package config
 
 import (
 	"fmt"
@@ -16,6 +16,7 @@ type AppOptions struct {
 	ConfigDir      string `short:"d" long:"config-dir" env:"NVIMM_CONFIG_DIR" description:"Configuration file directory"`
 	ConfigFileName string `short:"n" long:"config-file-name" env:"NVIMM_CONFIG_FILE_NAME" default:"nvimm.yml" description:"Configuration file name"`
 	Path           string `short:"p" long:"path" env:"NVIMM_PATH" description:"Path where Neovim releases are installed"`
+	MinRelease     string `short:"r" long:"min-release" env:"NVIMM_MIN_RELEASE" default:"0.7.0" description:"Neovim minimal release"`
 }
 
 type AppOptionsAware interface {

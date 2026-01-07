@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"github.com/candango/iook/pathx"
+	"github.com/candango/nvimm/internal/config"
 )
-
-const minimalRelease = "0.7.0"
 
 // Releases represents a list of GitHub release information.
 type Releases []Info
@@ -67,7 +66,7 @@ func (rs *Releases) Available(installed []Info) []Info {
 // Process unmarshals the provided JSON data into the Releases struct. It also
 // identifies the stable release and marks the corresponding Info entries
 // accordingly.
-func (rs *Releases) Process(data []byte) error {
+func (rs *Releases) Process(data []byte, appOpts *config.AppOptions) error {
 	err := json.Unmarshal(data, &rs)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal releases: %w", err)
@@ -81,7 +80,7 @@ func (rs *Releases) Process(data []byte) error {
 			continue
 		}
 
-		if info.VersionLess(minimalRelease) {
+		if info.VersionLess(appOpts.MinRelease) {
 			continue
 		}
 
