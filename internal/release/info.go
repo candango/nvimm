@@ -12,6 +12,8 @@ import (
 	"github.com/candango/iook/pathx"
 )
 
+const minimalRelease = "0.7.0"
+
 // Releases represents a list of GitHub release information.
 type Releases []Info
 
@@ -70,17 +72,20 @@ func (rs *Releases) Process(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal releases: %w", err)
 	}
-	releases := *rs
 
+	releases := (*rs)[:0]
 	var stable Info
-	for i, info := range releases {
+	for _, info := range *rs {
 		if info.TagName == "stable" {
 			stable = info
-			releases = append(releases[:i], releases[i+1:]...)
 			continue
 		}
+
+		if info.VersionLess(minimalRelease) {
+			continue
+		}
+
 		if info.VersionLess("0.11.3") {
-			fmt.Println(info.TagName)
 			checksums := info.ChecksumsFromBody()
 			for i, asset := range info.Assets {
 				digest, ok := checksums[asset.Name]
@@ -90,14 +95,16 @@ func (rs *Releases) Process(data []byte) error {
 				}
 			}
 		}
+		releases = append(releases, info)
 	}
+
 	for i, info := range releases {
 		if info.Name == stable.Name {
 			info.Stable = true
 			releases[i] = info
 		}
 	}
-	rs = &releases
+	*rs = releases
 	return nil
 }
 
