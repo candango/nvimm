@@ -23,10 +23,107 @@ import (
 )
 
 type CurrentCommand struct {
+	Release string `positional-arg-name:"release" description:"Release version to be set"`
+	appOpts *config.AppOptions
+}
+
+func (cmd *CurrentCommand) Usage() string {
+	return "[release]"
 }
 
 func (cmd *CurrentCommand) Execute(args []string) error {
+	if !pathx.Exists(cmd.appOpts.CachePath) {
+		return fmt.Errorf("cache path does not exist: %s",
+			cmd.appOpts.CachePath)
+	}
+	if !pathx.Exists(cmd.appOpts.Path) {
+		return fmt.Errorf("nvim path does not exist: %s",
+			cmd.appOpts.Path)
+	}
+	// nvimPath := cmd.appOptions.Path
+	cachePath := cmd.appOpts.CachePath
+
+	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	gt, err := protocol.NewGithubTransport()
+	if err != nil {
+		return fmt.Errorf("failed to create github transport: %w", err)
+	}
+
+	// TODO: use parametrized expiration time
+	if releaseCacher.Expired(30 * time.Minute) {
+		res, err := gt.GetReleases()
+		if err != nil {
+			return fmt.Errorf("failed to get releases: %w", err)
+		}
+		data, err := io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+		err = releaseCacher.Set(data)
+		if err != nil {
+			return fmt.Errorf("failed to cache releases: %w", err)
+		}
+	}
+
+	data, err := releaseCacher.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get cached releases: %w", err)
+	}
+	releases := release.Releases{}
+
+	err = releases.Process(data, cmd.appOpts)
+	if err != nil {
+		return fmt.Errorf("failed to process releases: %w", err)
+	}
+	notInstalled := len(releases.Installed(cmd.appOpts.Path)) == 0
+	if notInstalled {
+		return fmt.Errorf("no releases installed yet")
+	}
+	mustSetCurrent := true
+	if len(args) == 0 {
+		mustSetCurrent = false
+	} else {
+		cmd.Release = args[0]
+		if !pathx.Exists(filepath.Join(cmd.appOpts.Path, cmd.Release)) {
+			return fmt.Errorf("the release %s is not installed", cmd.Release)
+		}
+
+	}
+	if !mustSetCurrent {
+		currentInstalled, err := os.Readlink(filepath.Join(cmd.appOpts.Path, "current"))
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("failed to read current symlink: %w", err)
+			}
+			fmt.Printf("no current version set\n")
+			return nil
+
+		}
+		fmt.Printf("* %s\n", filepath.Base(currentInstalled))
+		return nil
+	}
+
+	currentInstalled, err := os.Readlink(filepath.Join(cmd.appOpts.Path, "current"))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to read current symlink: %w", err)
+		}
+	}
+
+	if currentInstalled == filepath.Join(cmd.appOpts.Path, cmd.Release) {
+		fmt.Printf("the release %s is already set as current\n", cmd.Release)
+		return nil
+	}
+
+	os.RemoveAll(filepath.Join(cmd.appOpts.Path, "current"))
+	os.Symlink(
+		filepath.Join(cmd.appOpts.Path, cmd.Release),
+		filepath.Join(cmd.appOpts.Path, "current"))
 	return nil
+}
+
+func (cmd *CurrentCommand) SetAppOptions(opts *config.AppOptions) {
+	cmd.appOpts = opts
 }
 
 type InstallCommand struct {
@@ -86,6 +183,8 @@ func (cmd *InstallCommand) Execute(args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to process releases: %w", err)
 	}
+
+	mustSetCurrent := len(releases.Installed(cmd.appOpts.Path)) == 0
 	info, err := releases.Get(cmd.Release)
 	if err != nil {
 		return err
@@ -143,6 +242,13 @@ func (cmd *InstallCommand) Execute(args []string) error {
 	releasePath := strings.ReplaceAll(
 		filepath.Join(cachePath, downloadedRelease), ".tar.gz", "")
 	dir.CopyAll(releasePath, filepath.Join(cmd.appOpts.Path, cmd.Release))
+	if mustSetCurrent {
+		os.RemoveAll(filepath.Join(cmd.appOpts.Path, "current"))
+		os.Symlink(
+			filepath.Join(cmd.appOpts.Path, cmd.Release),
+			filepath.Join(cmd.appOpts.Path, "current"))
+	}
+
 	return nil
 }
 
@@ -247,12 +353,23 @@ func (cmd *ListCommand) Execute(args []string) error {
 		fmt.Println("  no releases installed")
 	}
 
+	currentInstalled, err := os.Readlink(filepath.Join(cmd.appOpts.Path, "current"))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to read current symlink: %w", err)
+		}
+	}
+
 	for _, info := range installed {
+		ident := "  "
+		if filepath.Base(currentInstalled) == info.CleanTagName() {
+			ident = "* "
+		}
 		if info.Stable == true {
-			fmt.Printf("  %s (stable)\n", info.CleanTagName())
+			fmt.Printf("%s%s (stable)\n", ident, info.CleanTagName())
 			continue
 		}
-		fmt.Printf("  %s\n", info.CleanTagName())
+		fmt.Printf("%s%s\n", ident, info.CleanTagName())
 	}
 
 	available := releases.Available(installed)
