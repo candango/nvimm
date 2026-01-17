@@ -97,7 +97,19 @@ nvimm current
 Download and install a specific tag or build:
 
 ```bash
-nvimm install v0.11.3
+nvimm install 0.11.5
+
+Download completed. [OK]
+Downloaded file: /home/fpiraz/.cache/nvimm/nvim-linux-x86_64.tar.gz
+
+Checksum calculated. [OK]
+Calculated checksum: sha256:_a_really_trust_me_bro_hash_
+Expected checksum:   sha256:_a_really_trust_me_bro_hash_
+
+Extraction completed. [OK]
+
+Installation completed. [OK]
+Installed at: /opt/nvim/0.11.5
 ```
 
 ### Set the current version
@@ -116,7 +128,7 @@ To contribute or build the project locally:
 
 1. Clone the repository:
 ```bash
-git clone [https://github.com/candango/nvimm.git](https://github.com/candango/nvimm.git)
+git clone https://github.com/candango/nvimm.git
 
 ```
 
