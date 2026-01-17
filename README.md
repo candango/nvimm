@@ -21,7 +21,7 @@ listing, installing and switching between different neovim builds.
 Ensure you have **Go** installed on your system:
 
 ```bash
-go install [github.com/candango/nvimm@latest](https://github.com/candango/nvimm@latest)
+go install github.com/candango/nvimm@latest
 
 ```
 
@@ -29,13 +29,67 @@ go install [github.com/candango/nvimm@latest](https://github.com/candango/nvimm@
 
 ## Usage
 
-### List available versions
+```bash
+# Usage: nvimm
+# Please specify one command of: current, install or list
+# Usage:
+#   nvimm [Options] command <current | install | list>
+#
+# Application Options:
+#   -v, --verbose           Enable verbose mode
+#   -C, --cache-path=       Cache directory [$NVIMM_CACHE_PATH]
+#   -c, --config=           Configuration file path [$NVIMM_CONFIG_PATH]
+#   -d, --config-dir=       Configuration file directory [$NVIMM_CONFIG_DIR]
+#   -n, --config-file-name= Configuration file name (default: nvimm.yml) [$NVIMM_CONFIG_FILE_NAME]
+#   -p, --path=             Path where Neovim releases are installed [$NVIMM_PATH]
+#   -r, --min-release=      Neovim minimal release (default: 0.7.0) [$NVIMM_MIN_RELEASE]
+#
+# Help Options:
+#   -h, --help              Show this help message
+#
+# Available commands:
+#   current  Display the active or installed Neovim version
+#   install  Install the latest or a specific Neovim version
+#   list     List Neovim installed versions
+```
 
-Retrieve a list of versions available from the official neovim repository:
+### List installed and available versions
+
+Show installed and available Neovim versions:
 
 ```bash
 nvimm list
 
+Installed versions
+  nightly
+* 0.11.5 (stable)
+  0.11.4
+  0.11.3
+  0.11.2
+  0.11.1
+  0.11.0
+  0.10.4
+  0.10.3
+  0.10.1
+  0.10.0
+
+Available versions
+  0.10.2
+  0.9.5
+  0.9.4
+  0.9.2
+  0.9.1
+  0.9.0
+```
+
+### Show current version
+
+Display the active Neovim version:
+
+```bash
+nvimm current
+
+* 0.11.5
 ```
 
 ### Install a specific version
@@ -44,7 +98,6 @@ Download and install a specific tag or build:
 
 ```bash
 nvimm install v0.11.3
-
 ```
 
 ### Set the current version
@@ -53,7 +106,6 @@ Switch the active `nvim` binary to a previously installed version:
 
 ```bash
 nvimm use v0.11.3
-
 ```
 
 ---
@@ -81,9 +133,6 @@ cd nvimm
 go build -o nvimm .
 
 ```
-
-
-
 ---
 
 ## License
