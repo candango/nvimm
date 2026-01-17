@@ -209,44 +209,62 @@ func (cmd *InstallCommand) Execute(args []string) error {
 		return fmt.Errorf("the os %s and arch %s cannot to be resolved as a valid nvim asset", goos, goarch)
 	}
 
+	spinner := NewSpinner("Downloading...")
+	spinner.Start()
 	downloadedRelease, err := downloadRelease(assetUrl, cachePath)
+	spinner.Stop("Download completed.")
 	if err != nil {
 		return err
 	}
 	downloadedFile := filepath.Join(cachePath, downloadedRelease)
-	fmt.Printf("the release %s was downloaded to %s\n", downloadedRelease, cachePath)
+	fmt.Printf("Downloaded file: %s\n", downloadedFile)
+
+	spinner = NewSpinner("Calculating SHA256 checksum...")
+	spinner.Start()
 	fingerprint, err := filehash.SHA256(downloadedFile)
+	spinner.Stop("Checksum calculated.")
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Calculated checksum: %s\n", fingerprint)
+	fmt.Printf("Expected checksum:   %s\n", assetDigest)
 
 	if fingerprint != assetDigest {
-		return fmt.Errorf("the downloaded file is corrupted: expected %s but got %s",
+		return fmt.Errorf("The downloaded file is corrupted: expected %s but got %s",
 			assetDigest, fingerprint)
 	}
 
+	spinner = NewSpinner("Extracting archive...")
+	spinner.Start()
 	f, err := os.Open(downloadedFile)
 	if err != nil {
+		spinner.Stop("Extraction failed.")
 		return err
 	}
 	defer f.Close()
 
 	gzr, err := gzip.NewReader(f)
 	if err != nil {
+		spinner.Stop("Extraction failed.")
 		return err
 	}
 	defer gzr.Close()
-	fmt.Printf("extracting to %s\n", filepath.Dir(downloadedFile))
 	archive.Untar(gzr, filepath.Dir(downloadedFile))
+	spinner.Stop("Extraction completed.")
 
 	releasePath := strings.ReplaceAll(
 		filepath.Join(cachePath, downloadedRelease), ".tar.gz", "")
+	spinner = NewSpinner("Copying files...")
+	spinner.Start()
 	dir.CopyAll(releasePath, filepath.Join(cmd.appOpts.Path, cmd.Release))
+	spinner.Stop("Installation completed.")
+	fmt.Printf("Installed at: %s\n", filepath.Join(cmd.appOpts.Path, cmd.Release))
 	if mustSetCurrent {
 		os.RemoveAll(filepath.Join(cmd.appOpts.Path, "current"))
 		os.Symlink(
 			filepath.Join(cmd.appOpts.Path, cmd.Release),
 			filepath.Join(cmd.appOpts.Path, "current"))
+		fmt.Printf("Version %s set as current.\n", cmd.Release)
 	}
 
 	return nil

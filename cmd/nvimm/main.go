@@ -42,6 +42,6 @@ func main() {
 			os.Exit(0)
 		}
 		parser.WriteHelp(os.Stderr)
-		os.Exit(1)
+		os.Exit(0)
 	}
 }
