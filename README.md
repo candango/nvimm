@@ -1,4 +1,4 @@
-# Candango nvimm
+# Candango NvimM
 
 A lightweight command-line utility written in **Go** to manage **neovim**
 versions directly from official releases. `nvimm` simplifies the process of
