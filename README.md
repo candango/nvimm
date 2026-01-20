@@ -21,7 +21,7 @@ listing, installing and switching between different neovim builds.
 Ensure you have **Go** installed on your system:
 
 ```bash
-go install github.com/candango/nvimm@latest
+go install github.com/candango/nvimm/cmd/nvimm@latest
 
 ```
 
