@@ -1,63 +1,42 @@
 # Candango NvimM
 
-A lightweight command-line utility written in **Go** to manage **neovim**
-versions directly from official releases. `nvimm` simplifies the process of
-listing, installing and switching between different neovim builds.
+A lightweight command-line utility written in **Go** to manage **Neovim**
+versions directly from official GitHub releases. `nvimm` lets you install,
+switch, and upgrade Neovim builds without touching your system package manager.
 
 ---
 
-## Features
+## Quick Start
 
-* **List:** Fetch and display available versions from official neovim releases.
-* **Install:** Download and extract specific versions (e.g., `v0.11.3`, `nightly`).
-* **Switch:** Update symlinks to set the active `nvim` version on your machine.
-* **Fast:** Compiled Go binary with no external runtime dependencies.
-
----
-
-## Installation
-
-### From Source
-Ensure you have **Go** installed on your system:
+**1. Install nvimm:**
 
 ```bash
 go install github.com/candango/nvimm/cmd/nvimm@latest
-
 ```
+
+**2. Install the latest stable Neovim:**
+
+```bash
+nvimm install stable -y
+```
+
+**3. Add the managed binary to your PATH** (add to your shell profile):
+
+```bash
+export PATH="$HOME/.nvimm/current/bin:$PATH"
+```
+
+That's it. Run `nvim --version` to confirm.
 
 ---
 
-## Usage
+## Commands
 
-```bash
-# Usage: nvimm
-# Please specify one command of: current, install or list
-# Usage:
-#   nvimm [Options] command <current | install | list>
-#
-# Application Options:
-#   -v, --verbose           Enable verbose mode
-#   -C, --cache-path=       Cache directory [$NVIMM_CACHE_PATH]
-#   -c, --config=           Configuration file path [$NVIMM_CONFIG_PATH]
-#   -d, --config-dir=       Configuration file directory [$NVIMM_CONFIG_DIR]
-#   -n, --config-file-name= Configuration file name (default: nvimm.yml) [$NVIMM_CONFIG_FILE_NAME]
-#   -p, --path=             Path where Neovim releases are installed [$NVIMM_PATH]
-#   -r, --min-release=      Neovim minimal release (default: 0.7.0) [$NVIMM_MIN_RELEASE]
-#
-# Help Options:
-#   -h, --help              Show this help message
-#
-# Available commands:
-#   current  Display the active or installed Neovim version
-#   install  Install the latest or a specific Neovim version
-#   list     List Neovim installed versions
+### `nvimm list` — Browse available versions
+
+Shows installed versions and what is available to install:
+
 ```
-
-### List installed and available versions
-
-Show installed and available Neovim versions:
-
-```bash
 nvimm list
 
 Installed versions
@@ -65,26 +44,86 @@ Installed versions
 * 0.11.5 (stable)
   0.11.4
   0.11.3
-  0.11.2
-  0.11.1
-  0.11.0
-  0.10.4
-  0.10.3
-  0.10.1
-  0.10.0
 
 Available versions
   0.10.2
   0.9.5
-  0.9.4
-  0.9.2
-  0.9.1
-  0.9.0
+  ...
 ```
 
-### Show current version
+The `*` marks the version currently set as active.
 
-Display the active Neovim version:
+---
+
+### `nvimm install <version>` — Install a version
+
+Installs a specific version, the current stable, or the nightly build:
+
+```bash
+nvimm install 0.11.5     # specific version
+nvimm install stable     # current stable release
+nvimm install nightly    # latest nightly build
+```
+
+`nvimm` will prompt before downloading and before setting as current:
+
+```
+nvimm install 0.11.5
+
+download 0.11.5? (y/n) y
+Download completed. [OK]
+...
+Installation completed. [OK]
+Installed at: /home/user/.nvimm/0.11.5
+set 0.11.5 as current? (y/n) y
+Version 0.11.5 set as current.
+```
+
+Skip all prompts with `-y`:
+
+```bash
+nvimm install -y stable
+```
+
+---
+
+### `nvimm upgrade` — Upgrade to the latest stable
+
+Checks if a newer stable release is available and installs it:
+
+```
+nvimm upgrade
+
+Checking for latest stable...
+0.11.6 not installed
+download 0.11.6? (y/n) y
+...
+Installation completed. [OK]
+Installed at: /home/user/.nvimm/0.11.6
+set 0.11.6 as current? (y/n) y
+Version 0.11.6 set as current.
+```
+
+If you are already on the latest stable:
+
+```
+nvimm upgrade
+
+Checking for latest stable...
+Already up to date: 0.11.5
+```
+
+Skip all prompts with `-y`:
+
+```bash
+nvimm upgrade -y
+```
+
+---
+
+### `nvimm current` — Show or switch the active version
+
+Show which version is currently active:
 
 ```bash
 nvimm current
@@ -92,59 +131,43 @@ nvimm current
 * 0.11.5
 ```
 
-### Install a specific version
-
-Download and install a specific tag or build:
+Switch to a different installed version:
 
 ```bash
-nvimm install 0.11.5
-
-Download completed. [OK]
-Downloaded file: /home/fpiraz/.cache/nvimm/nvim-linux-x86_64.tar.gz
-
-Checksum calculated. [OK]
-Calculated checksum: sha256:_a_really_trust_me_bro_hash_
-Expected checksum:   sha256:_a_really_trust_me_bro_hash_
-
-Extraction completed. [OK]
-
-Installation completed. [OK]
-Installed at: /opt/nvim/0.11.5
+nvimm current 0.11.3
 ```
 
-### Set the current version
+---
 
-Switch the active `nvim` binary to a previously installed version:
+## Configuration
 
-```bash
-nvimm use v0.11.3
-```
+`nvimm` can be configured via environment variables or flags:
+
+| Variable | Flag | Description | Default |
+|---|---|---|---|
+| `NVIMM_PATH` | `-p` | Where releases are installed | `~/.nvimm` |
+| `NVIMM_CACHE_PATH` | `-C` | Cache directory | `~/.cache/nvimm` |
+| `NVIMM_MIN_RELEASE` | `-r` | Oldest release to show | `0.7.0` |
+| `NVIMM_CONFIG_DIR` | `-d` | Config file directory | `~/.config/nvimm` |
 
 ---
 
 ## Development
 
-To contribute or build the project locally:
+Clone and build locally:
 
-1. Clone the repository:
 ```bash
 git clone https://github.com/candango/nvimm.git
-
-```
-
-2. Navigate to the directory:
-```bash
 cd nvimm
-
+go build -o nvimm ./cmd/nvimm
 ```
 
-
-3. Build the binary:
+Run the tests:
 
 ```bash
-go build -o nvimm .
-
+go test ./...
 ```
+
 ---
 
 ## License

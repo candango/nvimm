@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -126,8 +127,132 @@ func (cmd *CurrentCommand) SetAppOptions(opts *config.AppOptions) {
 	cmd.appOpts = opts
 }
 
+func stdinOrDefault(stdin io.Reader) io.Reader {
+	if stdin != nil {
+		return stdin
+	}
+	return os.Stdin
+}
+
+func prompt(question string, r *bufio.Reader) (bool, error) {
+	fmt.Print(question)
+	answer, err := r.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+	answer = strings.TrimSpace(strings.ToLower(answer))
+	return answer == "y" || answer == "yes", nil
+}
+
+func installRelease(info *release.Info, appOpts *config.AppOptions, stdin io.Reader, yes bool) error {
+	version := info.CleanTagName()
+	cachePath := appOpts.CachePath
+
+	reader := bufio.NewReader(stdinOrDefault(stdin))
+
+	if !yes {
+		ok, err := prompt(fmt.Sprintf("download %s? (y/n) ", version), reader)
+		if err != nil {
+			return fmt.Errorf("failed to read input: %w", err)
+		}
+		if !ok {
+			return nil
+		}
+	}
+
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
+	assetUrl := ""
+	assetDigest := ""
+	assetFound := false
+
+	for _, asset := range info.Assets {
+		if asset.Name == getTarballName(info, goos, goarch) {
+			assetFound = true
+			assetUrl = fmt.Sprintf("%s/%s", strings.ReplaceAll(info.HtmlUrl, "tag", "download"), asset.Name)
+			assetDigest = asset.Digest
+			break
+		}
+	}
+
+	if !assetFound {
+		return fmt.Errorf("the os %s and arch %s cannot be resolved as a valid nvim asset", goos, goarch)
+	}
+
+	spinner := NewSpinner("Downloading...")
+	spinner.Start()
+	downloadedRelease, err := downloadRelease(assetUrl, cachePath)
+	spinner.Stop("Download completed.")
+	if err != nil {
+		return err
+	}
+	downloadedFile := filepath.Join(cachePath, downloadedRelease)
+	fmt.Printf("Downloaded file: %s\n", downloadedFile)
+
+	spinner = NewSpinner("Calculating SHA256 checksum...")
+	spinner.Start()
+	fingerprint, err := filehash.SHA256(downloadedFile)
+	spinner.Stop("Checksum calculated.")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Calculated checksum: %s\n", fingerprint)
+	fmt.Printf("Expected checksum:   %s\n", assetDigest)
+
+	if fingerprint != assetDigest {
+		return fmt.Errorf("the downloaded file is corrupted: expected %s but got %s",
+			assetDigest, fingerprint)
+	}
+
+	spinner = NewSpinner("Extracting archive...")
+	spinner.Start()
+	f, err := os.Open(downloadedFile)
+	if err != nil {
+		spinner.Stop("Extraction failed.")
+		return err
+	}
+	defer f.Close()
+
+	gzr, err := gzip.NewReader(f)
+	if err != nil {
+		spinner.Stop("Extraction failed.")
+		return err
+	}
+	defer gzr.Close()
+	archive.Untar(gzr, filepath.Dir(downloadedFile))
+	spinner.Stop("Extraction completed.")
+
+	releasePath := strings.ReplaceAll(
+		filepath.Join(cachePath, downloadedRelease), ".tar.gz", "")
+	spinner = NewSpinner("Copying files...")
+	spinner.Start()
+	dir.CopyAll(releasePath, filepath.Join(appOpts.Path, version))
+	spinner.Stop("Installation completed.")
+	fmt.Printf("Installed at: %s\n", filepath.Join(appOpts.Path, version))
+
+	if !yes {
+		ok, err := prompt(fmt.Sprintf("set %s as current? (y/n) ", version), reader)
+		if err != nil {
+			return fmt.Errorf("failed to read input: %w", err)
+		}
+		if !ok {
+			return nil
+		}
+	}
+
+	os.RemoveAll(filepath.Join(appOpts.Path, "current"))
+	os.Symlink(
+		filepath.Join(appOpts.Path, version),
+		filepath.Join(appOpts.Path, "current"))
+	fmt.Printf("Version %s set as current.\n", version)
+
+	return nil
+}
+
 type InstallCommand struct {
+	Yes     bool   `short:"y" long:"yes" description:"Skip confirmation prompts"`
 	Release string `positional-arg-name:"release" description:"Release version to install"`
+	stdin   io.Reader
 	appOpts *config.AppOptions
 }
 
@@ -141,16 +266,13 @@ func (cmd *InstallCommand) Execute(args []string) error {
 	}
 	cmd.Release = args[0]
 	if !pathx.Exists(cmd.appOpts.CachePath) {
-		return fmt.Errorf("cache path does not exist: %s",
-			cmd.appOpts.CachePath)
+		return fmt.Errorf("cache path does not exist: %s", cmd.appOpts.CachePath)
 	}
 	if !pathx.Exists(cmd.appOpts.Path) {
-		return fmt.Errorf("nvim path does not exist: %s",
-			cmd.appOpts.Path)
+		return fmt.Errorf("nvim path does not exist: %s", cmd.appOpts.Path)
 	}
-	// nvimPath := cmd.appOptions.Path
-	cachePath := cmd.appOpts.CachePath
 
+	cachePath := cmd.appOpts.CachePath
 	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
 	gt, err := protocol.NewGithubTransport()
 	if err != nil {
@@ -177,97 +299,128 @@ func (cmd *InstallCommand) Execute(args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get cached releases: %w", err)
 	}
-	releases := release.Releases{}
 
+	releases := release.Releases{}
 	err = releases.Process(data, cmd.appOpts)
 	if err != nil {
 		return fmt.Errorf("failed to process releases: %w", err)
 	}
 
-	mustSetCurrent := len(releases.Installed(cmd.appOpts.Path)) == 0
 	info, err := releases.Get(cmd.Release)
 	if err != nil {
 		return err
 	}
 
-	goos := runtime.GOOS
-	goarch := runtime.GOARCH
-	assetUrl := ""
-	assetDigest := ""
-	assetFound := false
+	return installRelease(info, cmd.appOpts, cmd.stdin, cmd.Yes)
+}
 
-	for _, asset := range info.Assets {
-		if asset.Name == getTarballName(info, goos, goarch) {
-			assetFound = true
-			assetUrl = fmt.Sprintf("%s/%s", strings.ReplaceAll(info.HtmlUrl, "tag", "download"), asset.Name)
-			assetDigest = asset.Digest
+func (cmd *InstallCommand) SetAppOptions(opts *config.AppOptions) {
+	cmd.appOpts = opts
+}
+
+type UpgradeCommand struct {
+	Yes     bool `short:"y" long:"yes" description:"Skip confirmation prompts"`
+	stdin   io.Reader
+	appOpts *config.AppOptions
+}
+
+func (cmd *UpgradeCommand) Execute(args []string) error {
+	if !pathx.Exists(cmd.appOpts.CachePath) {
+		return fmt.Errorf("cache path does not exist: %s", cmd.appOpts.CachePath)
+	}
+	if !pathx.Exists(cmd.appOpts.Path) {
+		return fmt.Errorf("nvim path does not exist: %s", cmd.appOpts.Path)
+	}
+
+	cachePath := cmd.appOpts.CachePath
+	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	gt, err := protocol.NewGithubTransport()
+	if err != nil {
+		return fmt.Errorf("failed to create github transport: %w", err)
+	}
+
+	// TODO: use parametrized expiration time
+	if releaseCacher.Expired(30 * time.Minute) {
+		res, err := gt.GetReleases()
+		if err != nil {
+			return fmt.Errorf("failed to get releases: %w", err)
+		}
+		data, err := io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+		err = releaseCacher.Set(data)
+		if err != nil {
+			return fmt.Errorf("failed to cache releases: %w", err)
+		}
+	}
+
+	data, err := releaseCacher.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get cached releases: %w", err)
+	}
+
+	releases := release.Releases{}
+	err = releases.Process(data, cmd.appOpts)
+	if err != nil {
+		return fmt.Errorf("failed to process releases: %w", err)
+	}
+
+	fmt.Println("Checking for latest stable...")
+
+	stableInfo, err := releases.Get("stable")
+	if err != nil {
+		return fmt.Errorf("failed to get stable release: %w", err)
+	}
+	stableVersion := stableInfo.CleanTagName()
+
+	installed := releases.Installed(cmd.appOpts.Path)
+	isInstalled := false
+	for _, info := range installed {
+		if info.CleanTagName() == stableVersion {
+			isInstalled = true
 			break
 		}
 	}
 
-	if !assetFound {
-		return fmt.Errorf("the os %s and arch %s cannot to be resolved as a valid nvim asset", goos, goarch)
+	currentLink, err := os.Readlink(filepath.Join(cmd.appOpts.Path, "current"))
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to read current symlink: %w", err)
+	}
+	isCurrent := filepath.Base(currentLink) == stableVersion
+
+	if isInstalled && isCurrent {
+		fmt.Printf("Already up to date: %s\n", stableVersion)
+		return nil
 	}
 
-	spinner := NewSpinner("Downloading...")
-	spinner.Start()
-	downloadedRelease, err := downloadRelease(assetUrl, cachePath)
-	spinner.Stop("Download completed.")
-	if err != nil {
-		return err
-	}
-	downloadedFile := filepath.Join(cachePath, downloadedRelease)
-	fmt.Printf("Downloaded file: %s\n", downloadedFile)
-
-	spinner = NewSpinner("Calculating SHA256 checksum...")
-	spinner.Start()
-	fingerprint, err := filehash.SHA256(downloadedFile)
-	spinner.Stop("Checksum calculated.")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Calculated checksum: %s\n", fingerprint)
-	fmt.Printf("Expected checksum:   %s\n", assetDigest)
-
-	if fingerprint != assetDigest {
-		return fmt.Errorf("The downloaded file is corrupted: expected %s but got %s",
-			assetDigest, fingerprint)
+	if !isInstalled {
+		fmt.Printf("%s not installed\n", stableVersion)
+		return installRelease(stableInfo, cmd.appOpts, cmd.stdin, cmd.Yes)
 	}
 
-	spinner = NewSpinner("Extracting archive...")
-	spinner.Start()
-	f, err := os.Open(downloadedFile)
-	if err != nil {
-		spinner.Stop("Extraction failed.")
-		return err
+	// installed but not current — just ask about setting current
+	if !cmd.Yes {
+		r := bufio.NewReader(stdinOrDefault(cmd.stdin))
+		ok, err := prompt(fmt.Sprintf("set %s as current? (y/n) ", stableVersion), r)
+		if err != nil {
+			return fmt.Errorf("failed to read input: %w", err)
+		}
+		if !ok {
+			return nil
+		}
 	}
-	defer f.Close()
-
-	gzr, err := gzip.NewReader(f)
-	if err != nil {
-		spinner.Stop("Extraction failed.")
-		return err
-	}
-	defer gzr.Close()
-	archive.Untar(gzr, filepath.Dir(downloadedFile))
-	spinner.Stop("Extraction completed.")
-
-	releasePath := strings.ReplaceAll(
-		filepath.Join(cachePath, downloadedRelease), ".tar.gz", "")
-	spinner = NewSpinner("Copying files...")
-	spinner.Start()
-	dir.CopyAll(releasePath, filepath.Join(cmd.appOpts.Path, cmd.Release))
-	spinner.Stop("Installation completed.")
-	fmt.Printf("Installed at: %s\n", filepath.Join(cmd.appOpts.Path, cmd.Release))
-	if mustSetCurrent {
-		os.RemoveAll(filepath.Join(cmd.appOpts.Path, "current"))
-		os.Symlink(
-			filepath.Join(cmd.appOpts.Path, cmd.Release),
-			filepath.Join(cmd.appOpts.Path, "current"))
-		fmt.Printf("Version %s set as current.\n", cmd.Release)
-	}
+	os.RemoveAll(filepath.Join(cmd.appOpts.Path, "current"))
+	os.Symlink(
+		filepath.Join(cmd.appOpts.Path, stableVersion),
+		filepath.Join(cmd.appOpts.Path, "current"))
+	fmt.Printf("Version %s set as current.\n", stableVersion)
 
 	return nil
+}
+
+func (cmd *UpgradeCommand) SetAppOptions(opts *config.AppOptions) {
+	cmd.appOpts = opts
 }
 
 func getTarballName(info *release.Info, goos string, goarch string) string {
@@ -315,10 +468,6 @@ func downloadRelease(url string, destDir string) (string, error) {
 		return "", err
 	}
 	return filename, nil
-}
-
-func (cmd *InstallCommand) SetAppOptions(opts *config.AppOptions) {
-	cmd.appOpts = opts
 }
 
 type ListCommand struct {

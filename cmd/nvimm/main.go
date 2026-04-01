@@ -31,6 +31,11 @@ func main() {
 		"List Neovim installed versions",
 		"List all Neovim versions currently installed and managed by nvimm on this machine.",
 		&cli.ListCommand{})
+	parser.AddCommand(
+		"upgrade",
+		"Upgrade Neovim to the latest stable version",
+		"Check for the latest stable Neovim release and install it if not already present. Prompts before downloading and before setting as current. Use -y to skip all prompts.",
+		&cli.UpgradeCommand{})
 
 	_, err := parser.Parse()
 	if err != nil {
