@@ -78,3 +78,32 @@ func (gt *GithubTransport) GetReleases() (*http.Response, error) {
 	}
 	return res, nil
 }
+
+// GithubPeasant is the domain-level client for GitHub operations. It wraps
+// peasant.Peasant and delegates HTTP operations to the underlying
+// GithubTransport.
+type GithubPeasant struct {
+	*peasant.Peasant
+}
+
+// NewGithubPeasant initializes a production GithubPeasant backed by a real
+// GithubTransport.
+func NewGithubPeasant() (*GithubPeasant, error) {
+	gt, err := NewGithubTransport()
+	if err != nil {
+		return nil, err
+	}
+	return &GithubPeasant{peasant.NewPeasant(gt)}, nil
+}
+
+// NewTestPeasant initializes a GithubPeasant from an injected peasant.Peasant,
+// allowing tests to supply a mock transport.
+func NewTestPeasant(p *peasant.Peasant) *GithubPeasant {
+	return &GithubPeasant{p}
+}
+
+// GetReleases delegates to the underlying GithubTransport to fetch Neovim
+// release metadata from the GitHub API.
+func (p *GithubPeasant) GetReleases() (*http.Response, error) {
+	return p.Transport.(*GithubTransport).GetReleases()
+}
