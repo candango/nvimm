@@ -1,14 +1,30 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/candango/nvimm/internal/cli"
 	"github.com/candango/nvimm/internal/config"
 	"github.com/jessevdk/go-flags"
 )
 
+func getVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+		return info.Main.Version
+	}
+	return "dev"
+}
+
 func main() {
+	for _, arg := range os.Args[1:] {
+		if arg == "--version" || arg == "-V" {
+			fmt.Println(getVersion())
+			os.Exit(0)
+		}
+	}
+
 	var opts config.AppOptions
 
 	parser := flags.NewParser(&opts, flags.Default)
