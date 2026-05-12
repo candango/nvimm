@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,8 +10,11 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+var ErrVersionRequested = errors.New("version requested")
+
 type AppOptions struct {
 	Verbose        bool   `short:"v" long:"verbose" description:"Enable verbose mode"`
+	Version        bool   `short:"V" long:"version" description:"Show version"`
 	CachePath      string `short:"C" long:"cache-path" env:"NVIMM_CACHE_PATH" description:"Cache directory"`
 	ConfigPath     string `short:"c" long:"config" env:"NVIMM_CONFIG_PATH" description:"Configuration file path"`
 	ConfigDir      string `short:"d" long:"config-dir" env:"NVIMM_CONFIG_DIR" description:"Configuration file directory"`
@@ -33,6 +37,9 @@ type AppOptionsFunc func(opts *AppOptions) error
 
 func WithAppOptions(opts *AppOptions, fns ...AppOptionsFunc) func(cmd flags.Commander, args []string) error {
 	return func(cmd flags.Commander, args []string) error {
+		if opts.Version {
+			return ErrVersionRequested
+		}
 		if opts.ConfigDir == "" {
 			userConfigDir, err := os.UserConfigDir()
 			if err != nil {

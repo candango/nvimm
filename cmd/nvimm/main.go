@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -18,16 +19,9 @@ func getVersion() string {
 }
 
 func main() {
-	for _, arg := range os.Args[1:] {
-		if arg == "--version" || arg == "-V" {
-			fmt.Println(getVersion())
-			os.Exit(0)
-		}
-	}
-
 	var opts config.AppOptions
 
-	parser := flags.NewParser(&opts, flags.Default)
+	parser := flags.NewParser(&opts, flags.Default&^flags.PrintErrors)
 	parser.Usage = "[Options] command"
 
 	parser.CommandHandler = config.WithAppOptions(&opts, config.WithPathsResolved)
@@ -54,15 +48,21 @@ func main() {
 		&cli.UpgradeCommand{})
 
 	_, err := parser.Parse()
+	if opts.Version {
+		fmt.Println(getVersion())
+		os.Exit(0)
+	}
 	if err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && (flagsErr.Type == flags.ErrUnknownCommand || flagsErr.Type == flags.ErrUnknownFlag) {
-			parser.WriteHelp(os.Stderr)
-			os.Exit(1)
-		}
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		if errors.Is(err, config.ErrVersionRequested) {
+			fmt.Println(getVersion())
 			os.Exit(0)
 		}
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			parser.WriteHelp(os.Stdout)
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, err)
 		parser.WriteHelp(os.Stderr)
-		os.Exit(0)
+		os.Exit(1)
 	}
 }
