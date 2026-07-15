@@ -3,6 +3,7 @@ package release
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -43,6 +44,56 @@ func (rs *Releases) Installed(path string) []Info {
 		}
 	}
 	return installed
+}
+
+// LatestInstalledStable returns the highest stable semantic version found in
+// the installation path. Nightly, prerelease, and non-version entries are
+// ignored.
+func LatestInstalledStable(path string) (string, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read install path: %w", err)
+	}
+
+	latest := ""
+	for _, entry := range entries {
+		if !entry.IsDir() || !isStableVersion(entry.Name()) {
+			continue
+		}
+		if latest == "" || versionLess(latest, entry.Name()) {
+			latest = entry.Name()
+		}
+	}
+	if latest == "" {
+		return "", fmt.Errorf("no stable releases installed")
+	}
+	return latest, nil
+}
+
+func isStableVersion(version string) bool {
+	parts := strings.Split(version, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	for _, part := range parts {
+		if _, err := strconv.Atoi(part); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func versionLess(left, right string) bool {
+	leftParts := strings.Split(left, ".")
+	rightParts := strings.Split(right, ".")
+	for i := range leftParts {
+		leftPart, _ := strconv.Atoi(leftParts[i])
+		rightPart, _ := strconv.Atoi(rightParts[i])
+		if leftPart != rightPart {
+			return leftPart < rightPart
+		}
+	}
+	return false
 }
 
 // Available returns a list of releases that are not present in the installed

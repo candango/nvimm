@@ -126,9 +126,10 @@ nvimim upgrade -y
 
 ---
 
-### `nvimim current` — Show or switch the active version
+### `nvimim current` — Show the active version
 
-Show which version is currently active:
+Displays the version currently selected as active. This command is
+read-only:
 
 ```bash
 nvimim current
@@ -136,10 +137,20 @@ nvimim current
 * 0.11.5
 ```
 
-Switch to a different installed version:
+### `nvimim set <version>` — Select an installed version
+
+Selects a version that is already installed locally. It never downloads or
+installs a release:
 
 ```bash
-nvimim current 0.11.3
+nvimim set 0.11.3
+```
+
+Use `latest` to select the highest stable version installed locally. Nightly
+and prerelease directories are ignored:
+
+```bash
+nvimim set latest
 ```
 
 ---

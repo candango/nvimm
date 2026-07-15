@@ -63,15 +63,19 @@ func (cmd *SetCommand) Execute(args []string) error {
 		return fmt.Errorf("nvim path does not exist: %s", cmd.appOpts.Path)
 	}
 
-	release := args[0]
-	if release == "latest" {
-		return fmt.Errorf("latest release selection is not available yet")
+	selectedRelease := args[0]
+	var err error
+	if selectedRelease == "latest" {
+		selectedRelease, err = release.LatestInstalledStable(cmd.appOpts.Path)
+		if err != nil {
+			return err
+		}
 	}
-	if !pathx.Exists(filepath.Join(cmd.appOpts.Path, release)) {
-		return fmt.Errorf("the release %s is not installed", release)
+	if !pathx.Exists(filepath.Join(cmd.appOpts.Path, selectedRelease)) {
+		return fmt.Errorf("the release %s is not installed", selectedRelease)
 	}
 
-	return setCurrentRelease(cmd.appOpts.Path, release)
+	return setCurrentRelease(cmd.appOpts.Path, selectedRelease)
 }
 
 func (cmd *SetCommand) SetAppOptions(opts *config.AppOptions) {
