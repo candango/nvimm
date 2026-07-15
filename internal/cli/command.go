@@ -51,6 +51,54 @@ func (cmd *CurrentCommand) SetAppOptions(opts *config.AppOptions) {
 	cmd.appOpts = opts
 }
 
+type SetCommand struct {
+	appOpts *config.AppOptions
+}
+
+func (cmd *SetCommand) Execute(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("set requires exactly one release argument")
+	}
+	if !pathx.Exists(cmd.appOpts.Path) {
+		return fmt.Errorf("nvim path does not exist: %s", cmd.appOpts.Path)
+	}
+
+	release := args[0]
+	if release == "latest" {
+		return fmt.Errorf("latest release selection is not available yet")
+	}
+	if !pathx.Exists(filepath.Join(cmd.appOpts.Path, release)) {
+		return fmt.Errorf("the release %s is not installed", release)
+	}
+
+	return setCurrentRelease(cmd.appOpts.Path, release)
+}
+
+func (cmd *SetCommand) SetAppOptions(opts *config.AppOptions) {
+	cmd.appOpts = opts
+}
+
+func setCurrentRelease(installPath, release string) error {
+	currentPath := filepath.Join(installPath, "current")
+	currentInstalled, err := os.Readlink(currentPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to read current symlink: %w", err)
+	}
+	if currentInstalled == filepath.Join(installPath, release) {
+		fmt.Printf("the release %s is already set as current\n", release)
+		return nil
+	}
+
+	if err := os.Remove(currentPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove current symlink: %w", err)
+	}
+	if err := os.Symlink(filepath.Join(installPath, release), currentPath); err != nil {
+		return fmt.Errorf("failed to set current release: %w", err)
+	}
+	fmt.Printf("Version %s set as current.\n", release)
+	return nil
+}
+
 func stdinOrDefault(stdin io.Reader) io.Reader {
 	if stdin != nil {
 		return stdin

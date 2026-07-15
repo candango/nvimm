@@ -32,6 +32,11 @@ func main() {
 		"Show the version currently selected as active.",
 		&cli.CurrentCommand{})
 	parser.AddCommand(
+		"set",
+		"Set an installed Neovim version as active",
+		"Select a locally installed Neovim version as the active release.",
+		&cli.SetCommand{})
+	parser.AddCommand(
 		"install",
 		"Install the latest or a specific Neovim version",
 		"Download and install Neovim binaries directly from official releases. Supports 'latest', 'nightly', or specific version tags.",
