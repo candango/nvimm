@@ -28,8 +28,8 @@ func main() {
 
 	parser.AddCommand(
 		"current",
-		"Display the active or installed Neovim version",
-		"Show the version of Neovim currently in use or switch the active version to a specific installed build.",
+		"Display the active Neovim version",
+		"Show the version currently selected as active.",
 		&cli.CurrentCommand{})
 	parser.AddCommand(
 		"install",
