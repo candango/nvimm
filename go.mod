@@ -1,4 +1,4 @@
-module github.com/candango/nvimm
+module github.com/candango/nvimim
 
 go 1.23
 

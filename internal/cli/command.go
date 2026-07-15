@@ -16,11 +16,11 @@ import (
 	"github.com/candango/iook/archive"
 	"github.com/candango/iook/dir"
 	"github.com/candango/iook/pathx"
-	"github.com/candango/nvimm/internal/cache"
-	"github.com/candango/nvimm/internal/config"
-	"github.com/candango/nvimm/internal/filehash"
-	"github.com/candango/nvimm/internal/protocol"
-	"github.com/candango/nvimm/internal/release"
+	"github.com/candango/nvimim/internal/cache"
+	"github.com/candango/nvimim/internal/config"
+	"github.com/candango/nvimim/internal/filehash"
+	"github.com/candango/nvimim/internal/protocol"
+	"github.com/candango/nvimim/internal/release"
 )
 
 type CurrentCommand struct {
@@ -44,7 +44,7 @@ func (cmd *CurrentCommand) Execute(args []string) error {
 	// nvimPath := cmd.appOptions.Path
 	cachePath := cmd.appOpts.CachePath
 
-	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	releaseCacher := cache.NewFileCacher(cachePath, "nvimim_releases.json")
 	gt, err := protocol.NewGithubPeasant()
 	if err != nil {
 		return fmt.Errorf("failed to create github transport: %w", err)
@@ -273,7 +273,7 @@ func (cmd *InstallCommand) Execute(args []string) error {
 	}
 
 	cachePath := cmd.appOpts.CachePath
-	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	releaseCacher := cache.NewFileCacher(cachePath, "nvimim_releases.json")
 	gt, err := protocol.NewGithubPeasant()
 	if err != nil {
 		return fmt.Errorf("failed to create github transport: %w", err)
@@ -333,7 +333,7 @@ func (cmd *UpgradeCommand) Execute(args []string) error {
 	}
 
 	cachePath := cmd.appOpts.CachePath
-	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	releaseCacher := cache.NewFileCacher(cachePath, "nvimim_releases.json")
 	gt, err := protocol.NewGithubPeasant()
 	if err != nil {
 		return fmt.Errorf("failed to create github transport: %w", err)
@@ -480,7 +480,7 @@ func (cmd *ListCommand) Execute(args []string) error {
 			cmd.appOpts.CachePath)
 	}
 	cachePath := cmd.appOpts.CachePath
-	releaseCacher := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	releaseCacher := cache.NewFileCacher(cachePath, "nvimim_releases.json")
 	gt, err := protocol.NewGithubPeasant()
 	if err != nil {
 		return fmt.Errorf("failed to create github transport: %w", err)

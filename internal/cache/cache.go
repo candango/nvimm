@@ -26,7 +26,7 @@ type FileCacher struct {
 }
 
 // NewFileCacher initializes a FileCacher. It determines the OS-specific user
-// cache directory and appends the "nvimm" namespace and the provided
+// cache directory and appends the "nvimim" namespace and the provided
 // filename.
 func NewFileCacher(dir string, filename string) *FileCacher {
 	path := filepath.Join(dir, filename)

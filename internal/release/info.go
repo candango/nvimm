@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/candango/iook/pathx"
-	"github.com/candango/nvimm/internal/config"
+	"github.com/candango/nvimim/internal/config"
 )
 
 // Releases represents a list of GitHub release information.

@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/candango/nvimm/internal/cli"
-	"github.com/candango/nvimm/internal/config"
+	"github.com/candango/nvimim/internal/cli"
+	"github.com/candango/nvimim/internal/config"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -39,7 +39,7 @@ func main() {
 	parser.AddCommand(
 		"list",
 		"List Neovim installed versions",
-		"List all Neovim versions currently installed and managed by nvimm on this machine.",
+		"List all Neovim versions currently installed and managed by nvimim on this machine.",
 		&cli.ListCommand{})
 	parser.AddCommand(
 		"upgrade",

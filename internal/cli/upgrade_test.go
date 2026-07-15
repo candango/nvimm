@@ -15,9 +15,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/candango/nvimm/internal/cache"
-	"github.com/candango/nvimm/internal/config"
-	"github.com/candango/nvimm/internal/release"
+	"github.com/candango/nvimim/internal/cache"
+	"github.com/candango/nvimim/internal/config"
+	"github.com/candango/nvimim/internal/release"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -114,7 +114,7 @@ func mustMkdir(t *testing.T, path string) {
 func writeCache(t *testing.T, cachePath, data string) {
 	t.Helper()
 	mustMkdir(t, cachePath)
-	c := cache.NewFileCacher(cachePath, "nvimm_releases.json")
+	c := cache.NewFileCacher(cachePath, "nvimim_releases.json")
 	require.NoError(t, c.Set([]byte(data)))
 }
 

@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	DEFAULT_NVIMAN_DIR         = "nvimm"
-	DEFAULT_NVIMAN_CONFIG_FILE = "nvimm.yml"
+	DEFAULT_NVIMIM_DIR         = "nvimim"
+	DEFAULT_NVIMIM_CONFIG_FILE = "nvimim.yml"
 )
 
 // Config holds all the configuration settings
@@ -29,7 +29,7 @@ func NewDefaultConfig() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		CacheDir: filepath.Join(userCache, DEFAULT_NVIMAN_DIR),
+		CacheDir: filepath.Join(userCache, DEFAULT_NVIMIM_DIR),
 		CacheTTL: 24 * time.Hour,
 	}, nil
 }
@@ -46,8 +46,8 @@ func NewManager() (*Manager, error) {
 		return nil, err
 	}
 	return &Manager{
-		configPath: filepath.Join(configDir, DEFAULT_NVIMAN_DIR,
-			DEFAULT_NVIMAN_CONFIG_FILE),
+		configPath: filepath.Join(configDir, DEFAULT_NVIMIM_DIR,
+			DEFAULT_NVIMIM_CONFIG_FILE),
 	}, nil
 }
 

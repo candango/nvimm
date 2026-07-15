@@ -29,14 +29,14 @@ func TestOptions(t *testing.T) {
 
 	t.Run("should get values from environment", func(t *testing.T) {
 		var opts AppOptions
-		os.Setenv("NVIMM_CONFIG_DIR", "/etc/nvimm")
-		os.Setenv("NVIMM_CONFIG_FILE_NAME", "nvimm.yaml")
-		os.Setenv("NVIMM_PATH", "/opt/nvimm")
-		os.Setenv("NVIMM_CACHE_PATH", "/opt/nvim/cache")
-		defer os.Unsetenv("NVIMM_CONFIG_DIR")
-		defer os.Unsetenv("NVIMM_CONFIG_FILE_NAME")
-		defer os.Unsetenv("NVIMM_PATH")
-		defer os.Unsetenv("NVIMM_CACHE_SUB_DIR")
+		os.Setenv("NVIMIM_CONFIG_DIR", "/etc/nvimim")
+		os.Setenv("NVIMIM_CONFIG_FILE_NAME", "nvimim.yaml")
+		os.Setenv("NVIMIM_PATH", "/opt/nvimim")
+		os.Setenv("NVIMIM_CACHE_PATH", "/opt/nvim/cache")
+		defer os.Unsetenv("NVIMIM_CONFIG_DIR")
+		defer os.Unsetenv("NVIMIM_CONFIG_FILE_NAME")
+		defer os.Unsetenv("NVIMIM_PATH")
+		defer os.Unsetenv("NVIMIM_CACHE_PATH")
 
 		parser := flags.NewParser(&opts, flags.Default)
 		parser.Usage = "[Application|Help Options] command"
@@ -58,9 +58,9 @@ func TestOptions(t *testing.T) {
 			t.Fatalf("error running the command: %v", err)
 		}
 
-		assert.Equal(t, filepath.Join(os.Getenv("NVIMM_CONFIG_DIR"),
-			os.Getenv("NVIMM_CONFIG_FILE_NAME")), opts.ConfigPath)
-		assert.Equal(t, os.Getenv("NVIMM_PATH"), opts.Path)
+		assert.Equal(t, filepath.Join(os.Getenv("NVIMIM_CONFIG_DIR"),
+			os.Getenv("NVIMIM_CONFIG_FILE_NAME")), opts.ConfigPath)
+		assert.Equal(t, os.Getenv("NVIMIM_PATH"), opts.Path)
 		assert.Equal(t, opts.CachePath, opts.CachePath)
 	})
 
@@ -71,7 +71,7 @@ func TestOptions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error getting user config dir: %v", err)
 		}
-		expectedConfigPath := filepath.Join(userConfigDir, "nvimm", "nvimm.yml")
+		expectedConfigPath := filepath.Join(userConfigDir, "nvimim", "nvimim.yml")
 		parser := flags.NewParser(&opts, flags.Default)
 
 		parser.Usage = "[Application|Help Options] command"
@@ -97,27 +97,27 @@ func TestOptions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error getting user cache dir: %v", err)
 		}
-		assert.Equal(t, filepath.Join(userHomeDir, ".nvimm"), opts.Path)
+		assert.Equal(t, filepath.Join(userHomeDir, ".nvimim"), opts.Path)
 	})
 
 	t.Run("should create paths if does not exists", func(t *testing.T) {
 		var opts AppOptions
-		dir, err := os.MkdirTemp("", "nvimm-test-")
+		dir, err := os.MkdirTemp("", "nvimim-test-")
 		os.Remove(dir)
 		// defer os.Remove(dir)
-		configDir, err := os.MkdirTemp("", "nvimm-config-test-")
+		configDir, err := os.MkdirTemp("", "nvimim-config-test-")
 		os.Remove(configDir)
 		// defer os.Remove(configDir)
-		config_file_name := "nvimm.yaml"
+		config_file_name := "nvimim.yaml"
 		if err != nil {
 			t.Fatalf("failed to create temp dir: %v", err)
 		}
-		os.Setenv("NVIMM_CONFIG_DIR", configDir)
-		os.Setenv("NVIMM_CONFIG_FILE_NAME", config_file_name)
-		os.Setenv("NVIMM_PATH", dir)
-		defer os.Unsetenv("NVIMM_CONFIG_DIR")
-		defer os.Unsetenv("NVIMM_CONFIG_FILE_NAME")
-		defer os.Unsetenv("NVIMM_PATH")
+		os.Setenv("NVIMIM_CONFIG_DIR", configDir)
+		os.Setenv("NVIMIM_CONFIG_FILE_NAME", config_file_name)
+		os.Setenv("NVIMIM_PATH", dir)
+		defer os.Unsetenv("NVIMIM_CONFIG_DIR")
+		defer os.Unsetenv("NVIMIM_CONFIG_FILE_NAME")
+		defer os.Unsetenv("NVIMIM_PATH")
 
 		parser := flags.NewParser(&opts, flags.Default)
 		parser.Usage = "[Application|Help Options] command"
