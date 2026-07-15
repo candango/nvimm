@@ -1,8 +1,8 @@
-# What's new in Candango NvimM {{VERSION}}
+# What's new in Candango NvimIM {{VERSION}}
 
 ## {{DATE-Jan-01-2026}}
 
-We are pleased to announce the release of NvimM {{VERSION}}.
+We are pleased to announce the release of NvimIM {{VERSION}}.
 
 Here are the highlights:
 
