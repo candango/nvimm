@@ -124,10 +124,10 @@ func (rs *Releases) Process(data []byte, appOpts *config.AppOptions) error {
 	}
 
 	releases := (*rs)[:0]
-	var stable Info
+	stableVersion := ""
 	for _, info := range *rs {
 		if info.TagName == "stable" {
-			stable = info
+			stableVersion = extractStableVersion(info)
 			continue
 		}
 
@@ -148,10 +148,9 @@ func (rs *Releases) Process(data []byte, appOpts *config.AppOptions) error {
 		releases = append(releases, info)
 	}
 
-	for i, info := range releases {
-		if info.Name == stable.Name {
-			info.Stable = true
-			releases[i] = info
+	for i := range releases {
+		if releases[i].CleanTagName() == stableVersion {
+			releases[i].Stable = true
 		}
 	}
 	*rs = releases
@@ -233,7 +232,20 @@ func (i *Info) VersionLess(v string) bool {
 	return len(s1) < len(s2)
 }
 
-var checksumRe = regexp.MustCompile(`([a-f0-9]{64})\s+([^\s]+)`)
+var (
+	stableVersionRe = regexp.MustCompile(`(?i)\bv?(\d+\.\d+\.\d+)\b`)
+	checksumRe      = regexp.MustCompile(`([a-f0-9]{64})\s+([^\s]+)`)
+)
+
+func extractStableVersion(info Info) string {
+	for _, text := range []string{info.Body, info.Name} {
+		match := stableVersionRe.FindStringSubmatch(text)
+		if len(match) == 2 {
+			return match[1]
+		}
+	}
+	return ""
+}
 
 func (i *Info) ChecksumsFromBody() map[string]string {
 	result := make(map[string]string)
